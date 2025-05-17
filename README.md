@@ -1,6 +1,6 @@
 # TIT Programming Language (v0.0.1)
 
-**TIT** stands for **Text-based Interpreted Technology** — a lightweight, interpreted programming language built from scratch by [Veerendra](https://www.linkedin.com/in/your-profile).
+**TIT** stands for **Text-based Interpreted Technology** — a lightweight, interpreted programming language built from scratch by [Veerendra](https://www.linkedin.com/in/veerendra-subhash-reddy-medapati-8ab5421b5/).
 
 This project was born out of curiosity, crafted with code, and inspired by the agility of the **tit bird** — small, sharp, and powerful.
 
@@ -64,3 +64,7 @@ MIT License
 
 PRs, ideas, suggestions — all welcome!
 Feel free to fork and build something cool on top of TIT.
+
+## 🔗 Connect
+
+Email : codehacker37@gmail.com
