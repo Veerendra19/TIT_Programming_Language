@@ -1,0 +1,10 @@
+TIT-lang/
+├── README.md
+├── LICENSE
+├── main.py              # The full interpreter
+├── shell.py             # Interactive shell
+├── examples/
+│   └── welcome.tit      
+├── logo/
+│   └── TIT_LOGO.png     
+├── .gitignore
