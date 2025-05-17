@@ -1,4 +1,4 @@
-# 🐦 TIT Programming Language (v0.0.1)
+# TIT Programming Language (v0.0.1)
 
 **TIT** stands for **Text-based Interpreted Technology** — a lightweight, interpreted programming language built from scratch by [Veerendra](https://www.linkedin.com/in/your-profile).
 
