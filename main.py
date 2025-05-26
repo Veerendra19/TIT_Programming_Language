@@ -3,6 +3,109 @@ from string_with_arrows import *
 import os
 import string
 import math
+import requests
+
+from PIL import Image
+from io import BytesIO
+
+###########################
+######## AI-Addon #########
+###########################
+
+OPENROUTER_API_KEY = "Add your own API key from Openrouter"
+
+def call_gen_text(prompt, max_tokens=200, temperature=0.9):
+    try:
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "model": "mistralai/mistral-7b-instruct",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=data
+        )
+
+        result = response.json()
+        return result['choices'][0]['message']['content'].strip()
+
+    except Exception as e:
+        return f"[OpenRouter Gen Error] {str(e)}"
+
+HF_API_TOKEN = "Add your own Hugging Face API key here"
+
+def call_gen_image(prompt):
+    try:
+        headers = {
+            "Authorization": f"Bearer {HF_API_TOKEN}",
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "inputs": prompt,
+            "options": {
+                "wait_for_model": True
+            }
+        }
+
+        response = requests.post(
+            "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+            headers=headers,
+            json=data
+        )
+
+        if response.status_code != 200:
+            print("Response text:", response.text)
+            return f"[HuggingFace Image Error] {response.text}"
+
+        # Hugging Face returns raw image content (not a URL)
+        image_bytes = response.content
+        image_path = f"generated_image.png"
+        with open(image_path, "wb") as f:
+            f.write(image_bytes)
+
+        return image_path
+
+    except Exception as e:
+        return f"[HuggingFace Image Error] {str(e)}"
+
+def call_summarizer(text):
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "model": "gpt-3.5-turbo",  # or another supported model for summarization
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant that summarizes text concisely."},
+            {"role": "user", "content": f"Summarize the following text:\n\n{text}"}
+        ],
+        "max_tokens": 150,
+        "temperature": 0.7
+    }
+    
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=data
+    )
+    
+    if response.status_code != 200:
+        return f"[OpenRouter Summarizer Error] {response.status_code} - {response.text}"
+    
+    result = response.json()
+    # Extract summary from response
+    summary = result['choices'][0]['message']['content'].strip()
+    return summary
 
 ###########################
 ######## Constants ########
@@ -1662,6 +1765,59 @@ class BuiltInFunction(BaseFunction):
         return RTResult().success(Number(len(list_.elements)))
     execute_len.arg_names = ['list']
 
+    def execute_gen_text(self, exec_ctx):
+    # Get arguments
+        prompt = exec_ctx.symbol_table.get('prompt')
+        max_tokens = exec_ctx.symbol_table.get('max_tokens')
+        temperature = exec_ctx.symbol_table.get('temperature')
+
+        # Validate prompt
+        if not isinstance(prompt, String):
+            return RTResult().failure(RTError(self.pos_start, self.pos_end, "Argument 'prompt' must be a string", exec_ctx))
+
+        # Validate max_tokens (optional)
+        if max_tokens is None:
+            max_tokens_val = 200
+        elif isinstance(max_tokens, Number):
+            max_tokens_val = int(max_tokens.value)
+        else:
+            return RTResult().failure(RTError(self.pos_start, self.pos_end, "Argument 'max_tokens' must be a number", exec_ctx))
+
+        # Validate temperature (optional)
+        if temperature is None:
+            temperature_val = 0.7
+        elif isinstance(temperature, Number):
+            temperature_val = float(temperature.value)
+        else:
+            return RTResult().failure(RTError(self.pos_start, self.pos_end, "Argument 'temperature' must be a number", exec_ctx))
+
+        # Call API with params
+        result = call_gen_text(prompt.value, max_tokens=max_tokens_val, temperature=temperature_val)
+        return RTResult().success(String(result))
+
+    # Update argument names to accept 3 params:
+    execute_gen_text.arg_names = ['prompt', 'max_tokens', 'temperature']
+
+    def execute_gen_image(self, exec_ctx):
+        prompt = exec_ctx.symbol_table.get('prompt')
+        if not isinstance(prompt, String):
+            return RTResult().failure(RTError(self.pos_start, self.pos_end, "Argument must be a string", exec_ctx))
+        
+        result = call_gen_image(prompt.value)
+        return RTResult().success(String(result))
+
+    execute_gen_image.arg_names = ['prompt']
+
+    def execute_summarize(self, exec_ctx):
+        text = exec_ctx.symbol_table.get('text')
+        if not isinstance(text, String):
+            return RTResult().failure(RTError(self.pos_start, self.pos_end, "Argument must be a string", exec_ctx))
+        
+        summary = call_summarizer(text.value)
+        return RTResult().success(String(summary))
+
+    execute_summarize.arg_names = ['text']
+
     def execute_run(self, exec_ctx):
         fn = exec_ctx.symbol_table.get('fn')
         if not isinstance(fn, String):
@@ -1698,6 +1854,9 @@ BuiltInFunction.pop = BuiltInFunction('pop')
 BuiltInFunction.len = BuiltInFunction('len')
 BuiltInFunction.extend = BuiltInFunction('extend')
 BuiltInFunction.run = BuiltInFunction('run')
+BuiltInFunction.gen_text = BuiltInFunction('gen_text')
+BuiltInFunction.gen_image = BuiltInFunction('gen_image')
+BuiltInFunction.summarize = BuiltInFunction('summarize')
 
 
 #############################
@@ -1983,6 +2142,9 @@ global_symbol_table.set("POP", BuiltInFunction.pop)
 global_symbol_table.set("LEN", BuiltInFunction.len)
 global_symbol_table.set("EXTEND", BuiltInFunction.extend)
 global_symbol_table.set("TIT", BuiltInFunction.run)
+global_symbol_table.set("GEN_TEXT", BuiltInFunction.gen_text)
+global_symbol_table.set("GEN_IMAGE", BuiltInFunction.gen_image)
+global_symbol_table.set("SUMMARIZE", BuiltInFunction.summarize)
 
 
 def run(fn, text):
