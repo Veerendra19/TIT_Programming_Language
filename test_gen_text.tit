@@ -1,0 +1,4 @@
+
+
+VAR quote = GEN_TEXT("Write a palindrome code in TIT language", 1000, 0.8)
+PRINT(quote)

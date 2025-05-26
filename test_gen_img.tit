@@ -1,0 +1,4 @@
+
+
+VAR img = GEN_IMAGE("Sparrow sitting on tree")
+PRINT(img)
